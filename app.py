@@ -18,10 +18,10 @@ def toggle_ac():
     global AIRE_PRENDIDO
     if AIRE_PRENDIDO:
         #Ejecutar comando para apagar aire
-        #subprocess.run("ls -a", shell=True)
+        subprocess.run("ir-ctl -d /dev/lirc0 -s ac_off".split())
         AIRE_PRENDIDO = False
     else:
         #Ejecutar comando para prender aire
-        #subprocess.run("ls -a", shell=True)
+        subprocess.run("ir-ctl -d /dev/lirc0 -s ac_on".split())
         AIRE_PRENDIDO = True
     return {'aire_prendido':AIRE_PRENDIDO}
