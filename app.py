@@ -10,6 +10,15 @@ app = Flask(__name__)
 
 AIRE_PRENDIDO = False
 
+def db_get_connection():
+    try:
+        conn = sqlite3.connect('temperaturas.db')
+        conn.row_factory = sqlite3.Row
+    except Error as e:
+        print(e)
+
+    return conn
+
 
 def init_sqlite3():
     """Inicializa la base de datos y tabla de temperaturas"""
@@ -45,8 +54,7 @@ def toggle_ac():
     return {'aire_prendido':AIRE_PRENDIDO}
 
 def get_ultima_temperatura():        
-    conn = sqlite3.connect('temperaturas.db')
-    conn.row_factory = sqlite3.Row
+    conn = db_get_connection()
     cursor = conn.cursor()
     sql_select_temperatura = """ select * from temperaturas order by id desc LIMIT 1; """
     cursor.execute(sql_select_temperatura)
@@ -55,8 +63,7 @@ def get_ultima_temperatura():
 
 @app.route('/get_temperaturas')
 def get_temperaturas(limite=50):        
-    conn = sqlite3.connect('temperaturas.db')
-    conn.row_factory = sqlite3.Row
+    conn = db_get_connection()   
     cursor = conn.cursor()
     sql_select_temperatura = """ select * from temperaturas order by id desc LIMIT ?; """
     cursor.execute(sql_select_temperatura,[limite])
