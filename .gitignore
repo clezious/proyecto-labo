@@ -1,0 +1,5 @@
+venv/
+.vscode
+__pycache__/app.cpython-38.pyc
+app.py
+temperaturas.db
