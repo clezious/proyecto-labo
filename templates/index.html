@@ -1,1 +1,85 @@
-Hola, la temperatura actual es de {{temperatura}} grados.
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment-with-locales.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.3/Chart.min.js"></script>
+</head>
+<body>
+    Hola, la temperatura actual es de {{temperatura}} grados.    
+    <div style="width:75%;">
+        <canvas id="myChart"></canvas>
+    </div>
+</body>
+
+<script>
+    var ctx = document.getElementById('myChart').getContext('2d');
+    var chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            legend: {
+                display: true
+            },
+            datasets: [{
+                fill: false,
+                data: get_temperaturas(),
+                label: 'Temperatura',
+                backgroundColor: "#FF2D00",
+                borderColor: "#FF2D00",
+                type: 'line',                
+                lineTension: 0,
+                borderWidth: 2,
+                pointBackgroundColor: 'transparent',
+                pointBorderColor: '#0000FF',
+                pointBorderWidth: 4,
+                pointHoverBorderColor: 'rgba(255, 255, 255, 0.2)',
+                pointHoverBorderWidth: 10,
+            }]
+        },
+        options: {
+            animation: false,
+            responsive: true,
+            scales: {
+            xAxes: [{
+                scaleLabel: {
+                    display: true,
+                    labelString: 'Time ( UTC )'
+                },
+                type: 'time',
+                time: {
+                    tooltipFormat: "hh:mm:ss",
+                    displayFormats: {
+                    hour: 'MMM D, hh:mm:ss'
+                    }
+                },
+                ticks: {
+                            maxRotation: 90,
+                            minRotation: 90
+                }
+            }],
+            yAxes: [{
+                scaleLabel: {
+                display: true,
+                labelString: 'Temperature ( Celcius )'
+                },
+            }]
+            }
+        }
+        });
+        
+    function get_temperaturas() {
+        let temperaturas = [];
+        fetch('/get_temperaturas')
+            .then(response => response.json())
+            .then(data => {
+                for (const elem of data) {
+                    temperaturas.push({
+                            x: new Date(elem['datetime']),
+                            y: elem["temp_celsius"]
+                        })
+                    }
+                console.log(temperaturas);
+                chart.data.datasets[0].data = temperaturas
+                chart.update()
+                return temperaturas
+            });
+    }
+</script>

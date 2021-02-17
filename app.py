@@ -16,9 +16,7 @@ def db_get_connection():
         conn.row_factory = sqlite3.Row
     except Error as e:
         print(e)
-
     return conn
-
 
 def init_sqlite3():
     """Inicializa la base de datos y tabla de temperaturas"""
@@ -32,7 +30,6 @@ def init_sqlite3():
     cursor.execute(sql_create_temperaturas_table)                                
     conn.commit()
     conn.close()
-
 #Inicializa db
 init_sqlite3()
 
@@ -62,7 +59,7 @@ def get_ultima_temperatura():
     return json.dumps(rsp)
 
 @app.route('/get_temperaturas')
-def get_temperaturas(limite=50):        
+def get_temperaturas(limite=20):        
     conn = db_get_connection()   
     cursor = conn.cursor()
     sql_select_temperatura = """ select * from temperaturas order by id desc LIMIT ?; """
