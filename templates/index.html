@@ -2,15 +2,58 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment-with-locales.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.3/Chart.min.js"></script>
 </head>
+
+<style>
+    @import 'https://fonts.googleapis.com/css?family=Roboto:300,400,500';
+    body{
+        background-color: #121c33;
+        color: #b6c1d4;
+        font-family: "Roboto", "Helvetica", "Arial", sans-serif;        
+        margin: 0 auto;
+        max-width: 60%;
+        line-height: 1.5;
+        padding: 4em 1em;
+    }
+    .card{
+        background-color: #263859;
+        border-radius: 0.5em;
+        padding: 1em;
+        margin-bottom: 1em;
+        margin-top: 1em;
+    }
+    .button{
+        background-color: #ff6768;
+        color: #263859;
+        padding: 0.5em;
+        border-radius: 0.5em;
+        text-decoration: none;
+    }
+    .button:hover{        
+        background-color: #f77979;
+        -webkit-transform: scale(1.1);
+        -moz-transform: scale(1.1);
+        -ms-transform: scale(1.1);
+        -o-transform: scale(1.1);
+        transform: scale(1.1);
+    }
+</style>
 <body>
-    Hola, la temperatura actual es de {{temperatura}} grados.    
-    <div style="width:75%;">
+    <div class="card">        
+        <h2 style="text-align: center;">                
+            La temperatura actual es de <b id="tempActual"></b> °C.
+        </h2>
         <canvas id="myChart"></canvas>
+    </div>
+    <div class="card" style="text-align: center;">        
+        El aire se encuentra <b id='statusAC'>apagado</b>
+        <a onclick="activarAC()" class="button" id="buttonAC">Activar AC</a>
     </div>
 </body>
 
 <script>
+    
     var ctx = document.getElementById('myChart').getContext('2d');
+    Chart.defaults.global.defaultFontColor = '#b6c1d4';
     var chart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -18,21 +61,30 @@
             legend: {
                 display: true
             },
-            datasets: [{
+            datasets: [{                
+                data: [],
+                label: 'Temperatura (°C)',
                 fill: false,
-                data: get_temperaturas(),
-                label: 'Temperatura',
-                backgroundColor: "#FF2D00",
-                borderColor: "#FF2D00",
+                borderColor: '#3c4f65',
+                borderWidth: 5,
                 type: 'line',                
-                lineTension: 0,
-                borderWidth: 2,
+                lineTension: 0,                
                 pointBackgroundColor: 'transparent',
-                pointBorderColor: '#0000FF',
-                pointBorderWidth: 4,
-                pointHoverBorderColor: 'rgba(255, 255, 255, 0.2)',
-                pointHoverBorderWidth: 10,
-            }]
+                pointBorderColor: '#ff6768',
+                pointBorderWidth: 8,
+                pointHoverBorderColor: '#ff6768',
+                pointHoverBorderWidth: 12,
+            }],
+            tooltips: {
+                backgroundColor: 'transparent',
+                displayColors: false,
+                bodyFontSize: 14,
+                callbacks: {
+                label: function(tooltipItems, data) { 
+                    return tooltipItems.yLabel + '°C';
+                }
+                }
+            }
         },
         options: {
             animation: false,
@@ -41,29 +93,29 @@
             xAxes: [{
                 scaleLabel: {
                     display: true,
-                    labelString: 'Time ( UTC )'
+                    labelString: 'Fecha'
                 },
                 type: 'time',
                 time: {
                     tooltipFormat: "hh:mm:ss",
                     displayFormats: {
-                    hour: 'MMM D, hh:mm:ss'
+                    hour: 'hh:mm:ss'
                     }
                 },
                 ticks: {
-                            maxRotation: 90,
-                            minRotation: 90
+                            maxRotation: 20,
+                            minRotation: 20
                 }
             }],
             yAxes: [{
                 scaleLabel: {
                 display: true,
-                labelString: 'Temperature ( Celcius )'
+                labelString: 'Temperatura (°C)'
                 },
             }]
             }
         }
-        });
+    });
         
     function get_temperaturas() {
         let temperaturas = [];
@@ -76,10 +128,40 @@
                             y: elem["temp_celsius"]
                         })
                     }
+                document.getElementById("tempActual").innerText = temperaturas[0].y;
                 console.log(temperaturas);
                 chart.data.datasets[0].data = temperaturas
-                chart.update()
-                return temperaturas
+                chart.update()                
             });
-    }
+        fetch('/status_ac')
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                updateStatusAC(data["aire_prendido"]);
+            });
+    };
+
+    function updateStatusAC(prendido){
+        let status = "apagado"
+        let buttonText = "Activar AC"
+        if(prendido){
+            status = "prendido";
+            buttonText = "Desactivar AC"
+        }
+        document.getElementById("statusAC").innerText = status;
+        document.getElementById("buttonAC").innerText = buttonText;
+    };
+
+    function activarAC(){
+        fetch('/toggle_ac')
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                updateStatusAC(data["aire_prendido"]);
+            });
+    };
+
+    get_temperaturas();
+    //Se actualizan las temperaturas cada x tiempo
+    setInterval(get_temperaturas,5000);
 </script>

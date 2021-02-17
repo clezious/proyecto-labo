@@ -42,12 +42,17 @@ def toggle_ac():
     global AIRE_PRENDIDO
     if AIRE_PRENDIDO:
         #Ejecutar comando para apagar aire
-        subprocess.run("ir-ctl -d /dev/lirc0 -s ac_off".split())
+        #subprocess.run("ir-ctl -d /dev/lirc0 -s ac_off".split())
         AIRE_PRENDIDO = False
     else:
         #Ejecutar comando para prender aire
-        subprocess.run("ir-ctl -d /dev/lirc0 -s ac_on".split())
+        #subprocess.run("ir-ctl -d /dev/lirc0 -s ac_on".split())
         AIRE_PRENDIDO = True
+    return {'aire_prendido':AIRE_PRENDIDO}
+
+@app.route('/status_ac')
+def status_ac():
+    global AIRE_PRENDIDO
     return {'aire_prendido':AIRE_PRENDIDO}
 
 def get_ultima_temperatura():        
@@ -56,7 +61,7 @@ def get_ultima_temperatura():
     sql_select_temperatura = """ select * from temperaturas order by id desc LIMIT 1; """
     cursor.execute(sql_select_temperatura)
     rsp = [dict(row) for row in cursor.fetchall()]
-    return json.dumps(rsp)
+    return json.dumps(rsp[0].get("temp_celsius"))
 
 @app.route('/get_temperaturas')
 def get_temperaturas(limite=20):        
