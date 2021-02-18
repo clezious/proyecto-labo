@@ -10,7 +10,7 @@
         color: #b6c1d4;
         font-family: "Roboto", "Helvetica", "Arial", sans-serif;        
         margin: 0 auto;
-        max-width: 60%;
+        max-width: 70%;
         line-height: 1.5;
         padding: 4em 1em;
     }
@@ -26,8 +26,9 @@
         background-color: #ff6768;
         color: #263859;
         padding: 0.5em;
-        border-radius: 0.5em;
+        border-radius: 0.2em;
         text-decoration: none;
+        font-weight: bold;
     }
     .button:hover{        
         background-color: #fa8f8f;
@@ -37,9 +38,27 @@
         -o-transform: scale(1.1);
         transform: scale(1.1);
     }
+    /*Para ocultar flechitas en input type number*/
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+    }    
+    input[type=number] {
+        max-width: 2.5em;
+        background: transparent;
+        color: inherit;
+        font-size: inherit;
+        font-style: inherit;
+        border: transparent;
+        text-align: center;
+        font-weight: bold;    
+        -moz-appearance: textfield;
+    }
+    /* */    
 </style>
 <body>
-    <div class="card">        
+    <div class="card">
         <h2 style="text-align: center;">                
             La temperatura actual es de <b id="tempActual"></b> °C.
         </h2>
@@ -47,12 +66,35 @@
     </div>
     <div class="card" style="text-align: center;">        
         El aire se encuentra <b id='statusAC'>apagado</b>
-        <a onclick="activarAC()" class="button" id="buttonAC">Activar AC</a>
+        <a onclick="toggleAC()" class="button" id="buttonAC">Activar AC</a>
+    </div>
+
+    <div class="card" style="text-align: center;">
+        <div class="card">
+            El modo automático se encuentra <b id='statusModoAutomaticoAC'>apagado</b>
+            <a onclick="updateModoAutomaticoAC()" class="button" id="buttonModoAutomaticoAC">Activar Modo Automático</a>
+        </div>     
+        <div class="card">
+            Temperatura de encendido (°C):        
+            <a onclick="changeTemp('temperaturaEncendido',-0.5)" class="button">-</a>
+            <input id="temperaturaEncendido" class="quantity" min="0" name="quantity" value="24" step="0.5" type="number" onchange="updateModoAutomaticoAC(toggle=false)">
+            <a onclick="changeTemp('temperaturaEncendido',0.5)" class="button">+</a>            
+            Temperatura de apagado (°C):
+            <a onclick="changeTemp('temperaturaApagado',-0.5)" class="button">-</a>
+            <input id="temperaturaApagado" class="quantity" min="0" name="quantity" value="24" step="0.5" type="number" onchange="updateModoAutomaticoAC(toggle=false)">
+            <a onclick="changeTemp('temperaturaApagado',0.5)" class="button">+</a>
+            
+        </div>
     </div>
 </body>
 
 <script>
-    
+    function changeTemp(id,ammount){
+        const element = document.getElementById(`${id}`);
+        let value = parseFloat(element.value);
+        element.value = (value+=ammount);
+        element.dispatchEvent(new Event('change'));
+    }
     var ctx = document.getElementById('myChart').getContext('2d');
     Chart.defaults.global.defaultFontColor = '#b6c1d4';
     var chart = new Chart(ctx, {
@@ -138,27 +180,45 @@
             .then(response => response.json())
             .then(data => {
                 console.log(data);
-                updateStatusAC(data["aire_prendido"]);
+                updateStatus(data);                
             });
     };
 
-    function updateStatusAC(prendido){
-        let status = "apagado"
-        let buttonText = "Activar AC"
-        if(prendido){
-            status = "prendido";
-            buttonText = "Desactivar AC"
-        }
-        document.getElementById("statusAC").innerText = status;
-        document.getElementById("buttonAC").innerText = buttonText;
-    };
+    function updateStatus(status){
+        //Se actualizan los botones y textos dependiendo del estado actual
+        document.getElementById("statusAC").innerText = (status['aire_encendido'] ? 'encendido' : 'apagado');
+        document.getElementById("buttonAC").innerText = (status['aire_encendido'] ? 'Apagar AC' : 'Prender AC');
+        
+        document.getElementById("statusModoAutomaticoAC").innerText = (status['modo_automatico_encendido'] ? 'encendido' : 'apagado');
+        document.getElementById("buttonModoAutomaticoAC").innerText = (status['modo_automatico_encendido'] ? 'Apagar Modo Automático' : 'Prender Modo Automático');
+        document.getElementById("temperaturaEncendido").value = status['temp_encendido'];
+        document.getElementById("temperaturaApagado").value = status['temp_apagado'];
+    };    
 
-    function activarAC(){
+    function toggleAC(){
         fetch('/toggle_ac')
             .then(response => response.json())
             .then(data => {
                 console.log(data);
-                updateStatusAC(data["aire_prendido"]);
+                updateStatus(data);
+            });
+    };
+    function updateModoAutomaticoAC(toggle=true){
+        fetch('/update_modo_automatico_ac',{
+            method:'POST',
+            headers: {
+                'Content-Type': 'application/json'            
+            },
+            body: JSON.stringify({
+                'toggle' : toggle,
+                'temp_encendido':document.getElementById('temperaturaEncendido').value,
+                'temp_apagado':document.getElementById('temperaturaApagado').value
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                updateStatus(data);
             });
     };
 
