@@ -8,8 +8,6 @@ import json
 
 app = Flask(__name__)
 
-AIRE_PRENDIDO = False
-
 def db_get_connection():
     try:
         conn = sqlite3.connect('temperaturas.db')
@@ -19,7 +17,7 @@ def db_get_connection():
     return conn
 
 def init_sqlite3():
-    """Inicializa la base de datos y tabla de temperaturas"""
+    """Inicializa la base de datos y tabla de temperaturas y status_ac"""
     conn = sqlite3.connect('temperaturas.db')
     cursor = conn.cursor()
     sql_create_temperaturas_table = """ CREATE TABLE IF NOT EXISTS temperaturas (
@@ -28,6 +26,17 @@ def init_sqlite3():
                                         temp_celsius real
                                     ); """
     cursor.execute(sql_create_temperaturas_table)                                
+    sql_create_temperaturas_table = """ CREATE TABLE IF NOT EXISTS status_ac (
+                                        id integer PRIMARY KEY,                                        
+                                        datetime text,
+                                        ac_prendido integer
+                                    );"""
+    cursor.execute(sql_create_temperaturas_table)
+    #El aire siempre inicia apagado
+    sql_insert_status_ac = """ INSERT INTO status_ac (datetime, ac_prendido)
+                               VALUES(datetime('now', 'localtime'),false);
+                           """  
+    cursor.execute(sql_insert_status_ac)
     conn.commit()
     conn.close()
 #Inicializa db
@@ -39,28 +48,48 @@ def index():
 
 @app.route('/toggle_ac')
 def toggle_ac():    
-    global AIRE_PRENDIDO
-    if AIRE_PRENDIDO:
+    aire_prendido = status_ac().get('aire_prendido')
+    conn = db_get_connection()
+    cursor = conn.cursor()
+    sql_insert_status_ac = """INSERT INTO status_ac (datetime, ac_prendido)
+                               VALUES(datetime('now', 'localtime'),?);"""
+    if aire_prendido:
         #Ejecutar comando para apagar aire
-        subprocess.run("ir-ctl -d /dev/lirc0 -s ac_off".split())
-        AIRE_PRENDIDO = False
+        try:
+            subprocess.run("ir-ctl -d /dev/lirc0 -s ac_off".split())
+        except:
+            pass
+        aire_prendido = False
     else:
         #Ejecutar comando para prender aire
-        subprocess.run("ir-ctl -d /dev/lirc0 -s ac_on".split())
-        AIRE_PRENDIDO = True
-    return {'aire_prendido':AIRE_PRENDIDO}
+        try:
+            subprocess.run("ir-ctl -d /dev/lirc0 -s ac_on".split())
+        except:
+            pass
+        aire_prendido = True
+    cursor.execute(sql_insert_status_ac,[aire_prendido])
+    conn.commit()
+    conn.close()
+    return {'aire_prendido':aire_prendido}
 
 @app.route('/status_ac')
 def status_ac():
-    global AIRE_PRENDIDO
-    return {'aire_prendido':AIRE_PRENDIDO}
+    conn = db_get_connection()
+    cursor = conn.cursor()
+    sql_select_temperatura = """ select * from status_ac ORDER BY id desc LIMIT 1;"""
+    cursor.execute(sql_select_temperatura)
+    rsp = [dict(row) for row in cursor.fetchall()]
+    print(rsp)
+    conn.close()
+    return {'aire_prendido':rsp[0].get("ac_prendido")==1}        
 
 def get_ultima_temperatura():        
     conn = db_get_connection()
     cursor = conn.cursor()
     sql_select_temperatura = """ select * from temperaturas order by id desc LIMIT 1; """
     cursor.execute(sql_select_temperatura)
-    rsp = [dict(row) for row in cursor.fetchall()]
+    rsp = [dict(row) for row in cursor.fetchall()]    
+    conn.close()
     return json.dumps(rsp[0].get("temp_celsius"))
 
 @app.route('/get_temperaturas')
@@ -70,6 +99,7 @@ def get_temperaturas(limite=20):
     sql_select_temperatura = """ select * from temperaturas order by id desc LIMIT ?; """
     cursor.execute(sql_select_temperatura,[limite])
     rsp = [dict(row) for row in cursor.fetchall()]
+    conn.close()
     return json.dumps(rsp)
 
 def update_temperatura():
