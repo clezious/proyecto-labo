@@ -6,6 +6,12 @@ import random
 from apscheduler.schedulers.background import BackgroundScheduler
 import json
 
+try:
+    from w1thermsensor import W1ThermSensor
+except:
+    #Para desarrollo
+    pass
+
 app = Flask(__name__)
 
 def db_get_connection():
@@ -148,9 +154,14 @@ def update_temperatura():
     sql_insert_temperatura = """ INSERT INTO temperaturas (datetime, temp_celsius)
                                  VALUES(datetime('now', 'localtime'),?);
                             """           
-    #Metemos un numero random como temperatura, reemplazar con lectura del sensor                                                     
-    random.seed()
-    temperatura = random.randrange(15,25) 
+    #Obtenemos la lectura del sensor
+    try:                                               
+        sensor = W1ThermSensor()
+        temperatura = sensor.get_temperature()
+    except:
+        #Para debug en desarrollo si no obtenemos nada del sensor, generamos un random alto. Quitar.
+        random.seed()
+        temperatura = random.randrange(60,80)
     cursor.execute(sql_insert_temperatura,[temperatura])    
     conn.commit()
     conn.close()
