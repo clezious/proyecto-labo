@@ -43,7 +43,7 @@ def init_sqlite3():
     cursor.execute(sql_create_temperaturas_table)
     #El aire siempre inicia apagado
     sql_insert_status_ac = """ INSERT INTO status_ac (datetime, aire_encendido,modo_automatico_encendido,temp_encendido,temp_apagado)
-                               VALUES(datetime('now', 'localtime'),false,false,24,23);
+                               VALUES(datetime('now', 'localtime'),0,0,24,23);
                            """  
     cursor.execute(sql_insert_status_ac)
     conn.commit()
